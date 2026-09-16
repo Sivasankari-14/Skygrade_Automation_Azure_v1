@@ -1,0 +1,13 @@
+{
+  "scopeAssignments": [
+    { "role": "skygrade-admin",        "clusters": ["NonMain"] },
+    { "role": "infra-architect",       "clusters": ["NonMain"] },
+    { "role": "infra-developer",       "clusters": ["NonMain"] },
+    { "role": "application-architect", "clusters": ["NonMain"] },
+    { "role": "application-developer", "clusters": ["NonMain"] }
+  ],
+  "apps": {
+    "nonMainframe": { "search": "nonmain", "app": "NonMaintest01", "viewAppsIndex": 0 },
+    "mainframe":    { "search": "main", "clusterText": "Mainmainframe_application12", "app": "Main_App_1", "viewAppsIndex": 1 }
+  }
+}
