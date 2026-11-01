@@ -7,12 +7,14 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, azure]     
+    runs-on: [self-hosted, azure]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -20,14 +22,15 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install
+        run: npx playwright install --with-deps
 
       - name: Run tests
-        run: npm test -- --reporter=html --output=reports/
+        run: npm test
 
-      - name: Upload report
+      - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: report
+          name: azure-cucumber-report
           path: reports/
+          if-no-files-found: warn
