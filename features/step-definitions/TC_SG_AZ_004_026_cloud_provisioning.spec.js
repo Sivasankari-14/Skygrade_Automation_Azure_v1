@@ -14,17 +14,21 @@ async function snap(world) {
 
 // ── Navigation ───────────────────────────────────────────────────────────────
 
-Then('The user clicks the Cloud Provisioning tab', async function () {
-  await this.page.getByRole('button', { name: 'Cloud Provisioning' })
-    .waitFor({ state: 'visible', timeout: 30000 });
-  await this.page.getByRole('button', { name: 'Cloud Provisioning' }).click();
-  await this.page.waitForTimeout(1500);
-});
+Then('The user clicks the Cloud Provisioning tab and then the Service catalog tab', async function () {
+  const serviceCatalogLink = this.page.getByRole('link', { name: 'Service Catalog' });
+  const cloudProvisioningBtn = this.page.getByRole('button', { name: 'Cloud Provisioning' });
 
-Then('the user clicks the Service catalog tab', async function () {
-  await this.page.getByRole('link', { name: 'Service Catalog' })
-    .waitFor({ state: 'visible', timeout: 30000 });
-  await this.page.getByRole('link', { name: 'Service Catalog' }).click();
+  // Only click Cloud Provisioning if Service Catalog is not already visible
+  const isServiceCatalogVisible = await serviceCatalogLink.isVisible().catch(() => false);
+
+  if (!isServiceCatalogVisible) {
+    await cloudProvisioningBtn.waitFor({ state: 'visible', timeout: 30000 });
+    await cloudProvisioningBtn.click();
+    await this.page.waitForTimeout(1500);
+  }
+
+  await serviceCatalogLink.waitFor({ state: 'visible', timeout: 30000 });
+  await serviceCatalogLink.click();
 });
 
 // ── Visibility checks ────────────────────────────────────────────────────────
@@ -185,6 +189,7 @@ Then('The user verifies the catalog in Morpheus page', async function () {
   await this.page1.locator('[id="catalogItems.filter.phrase"]').fill(morpheusSearchName);
   await expect(this.page1.getByText(this.catalogName).first()).toBeVisible();
 });
+
 
 Then('The user verifies the order details', async function () {
   await expect(this.page1.getByText(this.catalogDescription).first()).toBeVisible();

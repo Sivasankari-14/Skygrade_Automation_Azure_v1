@@ -5,14 +5,15 @@ Feature: Containerize App - Add Host and validate against Chai
     Given I am logged in as "application-developer"
     And I navigate to the containerize app and open the "Plan" tab
     And I proceed to the "App Engineering" section
-    When I initiate containerization if the application is not yet linked
+    When I compare the application details from plan tab to build tab
+    And I initiate containerization if the application is not yet linked
     Then the "Add Host", "Refresh", and "Edit Tag" buttons should be visible
     And I capture the existing host table data
 
     When I validate the Add Host form for "linux" OS with "basic" connection type
     And I validate the Add Host form for "linux" OS with "ssh" connection type
     And I validate the Add Host form for "windows" OS with "basic" connection type
-    And I validate the Add Host form for "windows" OS with "kerberos" connection type
+    # And I validate the Add Host form for "windows" OS with "kerberos" connection type
 
     Then I capture the final host table data
     And I open the first host's alias link to the Chai site

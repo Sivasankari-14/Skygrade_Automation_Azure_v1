@@ -923,12 +923,25 @@ Then('I compare data with CAST Highlight',async function () {
           await this.page.getByRole('button', { name: 'View Results' }).click();
           const page1 = await page1Promise;
         
-          await page1.getByRole('textbox', { name: 'Username' }).fill(cast.email);
+          await page1.locator('input[name="username"]').fill(cast.email);
+
           await page1.getByRole('button', { name: 'Next' }).click();
-          await page1.getByRole('textbox', { name: 'Password' }).fill(cast.password);
-          await page1.getByRole('button', { name: 'Log me in' }).click();
-          await page1.waitForTimeout(10000);
-          //await page1.waitForLoadState('networkidle');
+
+          await page1.locator('input[name="password"]').waitFor({
+            state: 'visible'
+          });
+
+          await page1.locator('input[name="password"]').fill(cast.password);
+
+          await page1.getByRole('button', { name: 'Sign In' }).click();
+
+          await page1.waitForLoadState('networkidle');
+
+          await page1.locator('button[data-id="applicationSelect"]').click();
+          // await page1.locator('.bs-searchbox input').fill(analysiscomparison.applicationName);
+          // await page1.getByRole('option', { name: analysiscomparison.applicationName }).click();
+
+          await page1.locator('a.dropdown-item[role="option"]').filter({ hasText: analysiscomparison.applicationName }).click();
         
           // ── STEP 3: Compare Metric Tiles ──────────────────────────────────────
           console.log('\n========== COMPARING METRIC TILES ==========');

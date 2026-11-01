@@ -2,6 +2,8 @@ const { Given, When, Then } = require('@cucumber/cucumber');
 const { expect } = require('@playwright/test');
 const { clusterAnalysis } = require('../config/data');
 const data = require('../config/data');
+
+
 // ---------------------------------------------------------------------------
 // Helper: locate the pagination container's prev/next buttons reliably
 // ---------------------------------------------------------------------------
@@ -13,30 +15,18 @@ function getPaginationButtons(page) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Helper: click "Previous" repeatedly until back on page 1.
-// ---------------------------------------------------------------------------
-async function resetToFirstPage(page) {
-  const { prevButton } = getPaginationButtons(page);
+// function getPageLoader(page) {
+//   return page.locator('xpath=//*[@role="progressbar"][not(ancestor::tbody)]');
+// }
 
-  while (await prevButton.isEnabled()) {
-    const firstAppBefore = await page.locator('tbody td:nth-child(2) button').first().textContent();
+function getPageLoader(page) {
+  return page.locator(
+    'xpath=//*[@role="progressbar"][not(ancestor::tr) and not(ancestor::*[@role="row"])]'
+  );
+}
 
-    await prevButton.click();
-
-    await expect(async () => {
-      const pageProgressBar = page.getByRole('progressbar');
-      if (await pageProgressBar.count()) {
-        expect(await pageProgressBar.isVisible()).toBe(false);
-      }
-
-      const rowCount = await page.locator('tbody td:nth-child(2) button').count();
-      expect(rowCount).toBeGreaterThan(0);
-
-      const firstAppAfter = await page.locator('tbody td:nth-child(2) button').first().textContent();
-      expect(firstAppAfter).not.toBe(firstAppBefore);
-    }).toPass({ timeout: 30000 });
-  }
+async function waitForPageLoaded(page) {
+  await expect(getPageLoader(page)).toHaveCount(0, { timeout: 30000 });
 }
 
 // ---------------------------------------------------------------------------
@@ -109,10 +99,7 @@ async function getDispositionCountsAcrossPages(page) {
     await nextButton.click();
 
     await expect(async () => {
-      const pageProgressBar = page.getByRole('progressbar');
-      if (await pageProgressBar.count()) {
-        expect(await pageProgressBar.isVisible()).toBe(false);
-      }
+            expect(await getPageLoader(page).count()).toBe(0);
 
       const rowCount = await page.locator('tbody tr td:last-child span').count();
       expect(rowCount).toBeGreaterThan(0);
@@ -182,10 +169,7 @@ async function getCompletedAppNamesFromMainTable(page) {
     await nextButton.click();
 
     await expect(async () => {
-      const pageProgressBar = page.getByRole('progressbar');
-      if (await pageProgressBar.count()) {
-        expect(await pageProgressBar.isVisible()).toBe(false);
-      }
+            expect(await getPageLoader(page).count()).toBe(0);
 
       const rowCountNow = await page.locator('tbody td:nth-child(2) button').count();
       expect(rowCountNow).toBeGreaterThan(0);
@@ -218,7 +202,66 @@ async function getReportCompletedAppNames(page) {
 }
 
 // ---------------------------------------------------------------------------
-// Steps
+// Add Application helpers
+// ---------------------------------------------------------------------------
+
+// Read lazily so the cluster scenarios still run if the section is missing
+function addAppCfg() {
+  const c = data.clusterAnalysis && data.clusterAnalysis.addApplication;
+  if (!c) {
+    throw new Error('Add the "addApplication" section inside clusterAnalysis in config/data.js (see data.clusterAnalysis.snippet.js).');
+  }
+  return c;
+}
+
+// Opens a custom dropdown by its label and picks an option.
+// Works whether or not the dropdown already has a value.
+// exact = true  -> option title must match fully
+// exact = false -> option title only needs to START with optionText
+async function selectCustomDropdown(page, labelText, optionText, exact = true) {
+  const wrapper = page
+    .locator('label', { hasText: labelText })
+    .locator('xpath=following-sibling::div');
+
+  // The trigger is always the first child div of the wrapper,
+  // regardless of its current title ("" or an already-selected value)
+  await wrapper.locator('xpath=./div[1]').click();
+
+  const optionSelector = exact
+    ? `div[title="${optionText}"]`
+    : `div[title^="${optionText}"]`;
+
+  // .last(): if the trigger already shows this value (same title), the
+  // option in the open list comes later in the DOM, so we click that one
+  await wrapper.locator(optionSelector).last().click();
+}
+
+// Fills the whole Add New Application form with valid data
+async function fillApplicationForm(page, appName) {
+  const c = addAppCfg();
+
+  await page.locator('input[name="appName"]').fill(appName);
+  await page.locator('input[name="scmUrl"]').fill(c.scmUrl);
+  await page.locator(`input[name="isCritical"][value="${c.critical}"]`).check();
+
+  // OS label is too short for a safe label match ("OS" also appears in "loss")
+  await page.getByText('Select OS').click();
+  await page.locator(`div[title="${c.os}"]`).click();
+
+  // Order matters: Target Platform stays disabled until Target Provider is chosen
+  await selectCustomDropdown(page, 'Current Provider', c.currentProvider);
+  await selectCustomDropdown(page, 'Target Provider', c.targetProvider);
+  await selectCustomDropdown(page, 'Current Platform', c.currentPlatform);
+  await selectCustomDropdown(page, 'Target Platform', c.targetPlatform);
+
+  for (const q of c.survey) {
+    await selectCustomDropdown(page, q.label, q.option, q.exact ?? true);
+  }
+  await page.locator('input[name="avgFte"]').fill(c.avgFte);
+}
+
+// ---------------------------------------------------------------------------
+// Background steps (run before every scenario)
 // ---------------------------------------------------------------------------
 Given('I log in to Skygrade as an application architect for clusterdetails page', async function () {
   await this.page.goto(data.baseURL);
@@ -236,13 +279,23 @@ Given('I search for the target cluster and open its apps', async function () {
   await page.getByRole('textbox', { name: 'Search' }).fill(clusterName);
 
   this.cardAppsCount = await getClusterAppsAndClick(page, clusterName);
-
   await page.waitForTimeout(5000);
   await page.locator('img[alt="Total Apps"]').waitFor({ state: 'visible' });
 });
 
-Then('the cluster detail summary stats should match the card\'s app count', async function () {
+Given('I note the cluster summary stats', async function () {
   const page = this.page;
+  await page.waitForTimeout(5000);
+  // 1) Wait for the table data first. The summary cards show 0 until it has loaded.
+  await waitForPageLoaded(page);
+  await expect(
+    page.locator('tbody tr').filter({ has: page.locator('td button') }).first()
+  ).toBeVisible({ timeout: 30000 });
+
+  // 2) Only then read the summary (poll until it shows a real number)
+  await expect
+    .poll(() => getClusterDetailStatValue(page, 'Total Apps'), { timeout: 30000 })
+    .toBeGreaterThan(0);
 
   const totalApps = await getClusterDetailStatValue(page, 'Total Apps');
   const yetToStart = await getClusterDetailStatValue(page, 'Yet to Start');
@@ -257,20 +310,26 @@ Then('the cluster detail summary stats should match the card\'s app count', asyn
   console.log(`Completed       : ${completed}`);
   console.log('===========================\n');
 
-  expect(totalApps).toBe(this.cardAppsCount);
   this.totalApps = totalApps;
 
-  // Wait until application rows are actually loaded
-  const progressBar = page.getByRole('progressbar');
-  if (await progressBar.count()) {
-    await progressBar.waitFor({ state: 'hidden', timeout: 30000 });
-  }
-
-  await expect(
-    page.locator('tbody tr').filter({ has: page.locator('td button') }).first()
-  ).toBeVisible({ timeout: 30000 });
+  // An application that already exists in this cluster (first row of the table).
+  // Used by the add-application duplicate-name check.
+  this.existingAppName = (
+    await page.locator('tbody td:nth-child(2) button').first().innerText()
+  ).trim();
 });
 
+
+// ---------------------------------------------------------------------------
+// @smoke : summary vs card
+// ---------------------------------------------------------------------------
+Then('the cluster detail summary stats should match the card\'s app count', async function () {
+  expect(this.totalApps).toBe(this.cardAppsCount);
+});
+
+// ---------------------------------------------------------------------------
+// @sanity @pagination : table row count
+// ---------------------------------------------------------------------------
 When('I count all application rows across every page of the cluster table', async function () {
   const page = this.page;
 
@@ -299,10 +358,7 @@ When('I count all application rows across every page of the cluster table', asyn
     await nextButton.click();
 
     await expect(async () => {
-      const pageProgressBar = page.getByRole('progressbar');
-      if (await pageProgressBar.count()) {
-        expect(await pageProgressBar.isVisible()).toBe(false);
-      }
+            expect(await getPageLoader(page).count()).toBe(0);
 
       const rowCount = await page.locator('tbody td:nth-child(2) button').count();
       expect(rowCount).toBeGreaterThan(0);
@@ -326,10 +382,9 @@ Then('the total table row count should match the total apps summary', async func
   expect(this.totalTableRows).toBe(this.totalApps);
 });
 
-When('I reset the table to the first page', async function () {
-  await resetToFirstPage(this.page);
-});
-
+// ---------------------------------------------------------------------------
+// @sanity @disposition / @regression @report : disposition breakdown
+// ---------------------------------------------------------------------------
 When('I capture the disposition breakdown across all pages', async function () {
   const { dispositionCounts, totalRows } = await getDispositionCountsAcrossPages(this.page);
   this.dispositionCounts = dispositionCounts;
@@ -346,12 +401,11 @@ Then('the disposition totals should match the total apps summary', async functio
   expect(sumOfDispositions).toBe(this.totalApps);
 });
 
-When('I reset the table to the first page again', async function () {
-  await resetToFirstPage(this.page);
-});
-
+// ---------------------------------------------------------------------------
+// @regression @report : completed app names + report page
+// ---------------------------------------------------------------------------
 When('I capture the completed application names from the main table', async function () {
-  // IMPORTANT: must run before clicking "View Results", while the main
+  // Must run before clicking "View Results", while the main
   // Cluster Details table is still on screen
   this.completedAppNamesFromTable = await getCompletedAppNamesFromMainTable(this.page);
 });
@@ -394,4 +448,61 @@ Then('the completed application names should match between the table and the rep
   console.log('============================================\n');
 
   expect([...reportCompletedAppNames].sort()).toEqual([...this.completedAppNamesFromTable].sort());
+});
+
+// ===========================================================================
+// ADD APPLICATION (button on the Cluster Details page)
+// ===========================================================================
+When('I click the Add new application button', async function () {
+  await this.page.getByRole('button', { name: 'Add new application' }).click();
+});
+
+Then('the Add New Application form should be displayed for the cluster', async function () {
+  await expect(this.page.getByRole('heading', { name: 'Add New Application' })).toBeVisible();
+  await expect(this.page.getByText(`Adding application to ${this.clusterName}`)).toBeVisible();
+});
+
+When('I fill the application form with an existing application name', async function () {
+  this.appName = this.existingAppName;
+  await fillApplicationForm(this.page, this.appName);
+});
+
+When('I fill the application form with a new unique application name', async function () {
+  this.appName = `${addAppCfg().newNamePrefix}-${Date.now()}`;
+  await fillApplicationForm(this.page, this.appName);
+});
+
+When('I set the target provider and platform same as the current ones', async function () {
+  const c = addAppCfg();
+  await selectCustomDropdown(this.page, 'Target Provider', c.currentProvider);
+  await selectCustomDropdown(this.page, 'Target Platform', c.currentPlatform);
+});
+
+When('I clear the average FTE field', async function () {
+  await this.page.locator('input[name="avgFte"]').fill('');
+});
+
+When('I enter an invalid SCM URL', async function () {
+  await this.page.locator('input[name="scmUrl"]').fill(addAppCfg().invalidScmUrl);
+});
+
+When('I submit the application form', async function () {
+  await this.page.getByRole('button', { name: 'Add Application' }).click();
+});
+
+Then('the duplicate application name error should be displayed', async function () {
+  const message = addAppCfg().messages.duplicate.replace('{name}', this.appName);
+  await expect(this.page.getByText(message)).toBeVisible();
+});
+
+Then('the identical configuration error should be displayed', async function () {
+  await expect(this.page.getByText(addAppCfg().messages.identical)).toBeVisible();
+});
+
+Then('the required field error should be displayed', async function () {
+  await expect(this.page.getByText(addAppCfg().messages.required, { exact: true })).toBeVisible();
+});
+
+Then('the invalid SCM URL format error should be displayed', async function () {
+  await expect(this.page.getByText(addAppCfg().messages.invalidUrl)).toBeVisible();
 });

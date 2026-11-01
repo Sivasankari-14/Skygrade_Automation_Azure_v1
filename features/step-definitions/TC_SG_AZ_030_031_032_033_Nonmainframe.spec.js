@@ -2,9 +2,9 @@ const { Given, When, Then } = require('@cucumber/cucumber');
 
 const { expect } = require('@playwright/test');
 
-const testData = require('../config/data');
+const testData = require('../config/data.js');
 
-const { stackgen} = require('../config/data');
+const { stackgen} = require('../config/data.js');
 
 const { appName, clusterName, searchCluster } = testData.nonMainframe;
 
@@ -22,7 +22,7 @@ const emailOf = (u) => u.email || `${u.username}@cognizant.com`;
 
 // add near the top of rehost.steps.js (with the other requires/helpers)
 
-const shared = require('../support/_shared');
+const shared = require('../support/_shared.js');
 
 function rand() { return Math.random().toString(36).slice(2, 6); }
  
@@ -173,7 +173,7 @@ When('I edit the plan and set disposition to {string}', { timeout: 120000 }, asy
 
   //Below link won't work here because only if the plan is already went through plantab only that'll work
   //await page.getByRole('button', { name: 'Plan Plan' }).click({ timeout: 10000 }).catch(() => {});
-  await page.getByText('Plan').click();
+  await page.getByRole('button', { name: 'Plan Plan' }).click();
   await page.waitForTimeout(800);
 
   // const proceedButton = page.getByRole('button', { name: 'Proceed' });
@@ -208,6 +208,33 @@ When('I edit the plan and set disposition to {string}', { timeout: 120000 }, asy
       .catch(() => {});
   }
 
+ async function selectMuiDropdown(page, labelText, optionText) {
+  const dropdown = page
+    .locator(`div:has(> label:has-text("${labelText}"))`)
+    .locator('div[role="combobox"]');
+
+  await dropdown.waitFor({ state: 'visible' });
+  await dropdown.click();
+
+  // Wait until MUI marks it as open
+  await page.waitForSelector(
+    `//label[contains(.,"${labelText}")]/..//div[@role="combobox"][@aria-expanded="true"]`
+  );
+
+  // Option inside the popup (not role-based, so aria-hidden can't break it)
+  const option = page
+    .locator('ul[role="listbox"] li[role="option"]')
+    .filter({ hasText: new RegExp(`^\\s*${optionText}\\s*$`) });
+
+  await option.first().waitFor({ state: 'attached', timeout: 10000 });
+  await option.first().click();
+}
+
+// Usage
+await selectMuiDropdown(page, 'Target Provider', 'Azure');
+await selectMuiDropdown(page, 'Target Platform', 'AKS');
+
+
 
   //await page.getByRole('button', { name: 'Yes' }).click({ timeout: 8000 }).catch(() => {});   // confirm change
 
@@ -237,6 +264,7 @@ if (disp === 'Rehost') {
     .catch(() => {});
 }
 
+
   //Need to add other Mandatory feilds in order to proceed
   await page.getByRole('combobox').nth(5).click();
   //await page.getByRole('option', { name: 'Acct569694 (443421141495)' }).click();
@@ -247,7 +275,7 @@ if (disp === 'Rehost') {
   await page.getByRole('combobox').nth(6).click();
   listbox = this.page.locator('ul[role="listbox"]').last();
   await listbox.waitFor({ state: 'visible', timeout: 8000 });
-  await listbox.locator('li[data-value="AzCluster67102"]').click({ timeout: 8000 });
+  await listbox.locator('li[data-value="AzCluster46630"]').click({ timeout: 8000 });
 
   await page.getByRole('button', { name: 'Update' }).click({ timeout: 10000 });
 
@@ -392,8 +420,14 @@ if (dis === 'Rehost') {
     .getByRole('checkbox')
     .check({ timeout: 8000 })
     .catch(() => {});
+}else if (dis === 'Retire') {
+  await page.getByRole('button', { name: 'Update' }).click();
+  await page.getByRole('button', { name: 'Confirm' }).click({ timeout: 8000 }).catch(() => {});
+  await page.getByText("This application has been retired, so you will not be able to proceed further.");
+
 }
 
+if (dis !== 'Retire') {
   await page.getByRole('combobox').nth(5).click();
   //await page.getByRole('option', { name: 'Acct569694 (443421141495)' }).click();
   let listbox = this.page.locator('ul[role="listbox"]').last();
@@ -403,7 +437,7 @@ if (dis === 'Rehost') {
   await page.getByRole('combobox').nth(6).click();
   listbox = this.page.locator('ul[role="listbox"]').last();
   await listbox.waitFor({ state: 'visible', timeout: 8000 });
-  await listbox.locator('li[data-value="AzCluster67102"]').click({ timeout: 8000 });
+  await listbox.locator('li[data-value="AzCluster46630"]').click({ timeout: 8000 });
 
   await expect(page.getByRole('article')).toContainText('No accelerators are available for the selected modernization approach.');
   
@@ -424,6 +458,7 @@ if (dis === 'Rehost') {
   await page.getByRole('button', { name: 'Cancel' }).click({ timeout: 10000 });
 
   await shot(this, `Plan disposition set to ${dis}`);
+}
 
 });
 
@@ -445,7 +480,9 @@ const addUser = async (page, role, email, clusterSearch, cluster, labelText) => 
 
     //await page.getByRole('option', { name: cluster, exact: true }).waitFor({ state: 'visible', timeout: 15000 });
     await page.getByRole('option', { name: cluster, exact:true }).click();
-    await page.getByText(labelText).click();
+    await page.keyboard.press('Escape');
+    //await page.getByText(labelText).click();
+    
     await page.getByRole('button', { name: 'Add User' }).click();
     await expect(page.getByText('User added successfully')).toBeVisible();
     await page.waitForTimeout(1000);
@@ -458,7 +495,7 @@ When('admin assigns cluster scope', { timeout: 180000 }, async function () {
   await page.getByRole('link', { name: 'Authorization' }).click();
   await page.getByRole('button', { name: 'User Mapping Assign users to' }).click();
   await addUser(page, 'application-architect', 'application-architect@cognizant.com', searchCluster, clusterName,
-    'Group Name*application-architectUser*Email (e.g. name@company.com) or username');
+    'Cluster*');
   await addUser(page, 'infra-architect', 'infra-architect@cognizant.com', searchCluster, clusterName,
     'Cluster*');
   await addUser(page, 'infra-developer', 'infra-developer@cognizant.com', searchCluster, clusterName,
@@ -480,9 +517,22 @@ Then('the analysis status should be {string}', { timeout: 60000 }, async functio
 
 When("I search for the app in Search button", async function () {
   const { clusterName } = getScenarioData(this);
-  await expect(this.page.getByRole('heading', { name: 'App Modernization' })).toBeVisible();
-  await this.page.getByRole('button', { name: 'Modernization' }).first().click();
-  await this.page.getByRole('link', { name: 'App Modernization' }).click();
+const modernization = this.page.getByRole('button', { name: /^Modernization/ });
+const appModernization = this.page.getByRole('button', { name: /^App Modernization/ });
+const portfolioAnalysis = this.page.getByText('Portfolio Analysis', { exact: true });
+
+await modernization.waitFor({ state: 'visible' });
+
+if (await portfolioAnalysis.isVisible()) {
+    await portfolioAnalysis.click();
+} else if (await appModernization.isVisible()) {
+    await appModernization.click();
+    await portfolioAnalysis.click();
+} else {
+    await modernization.click();
+    await appModernization.click();
+    await portfolioAnalysis.click();
+}
   await expect(this.page.getByRole('textbox', { name: 'Search' })).toBeVisible();
   await this.page.getByRole('textbox', { name: 'Search' }).click();
   await this.page.getByRole('textbox', { name: 'Search' }).fill(clusterName);
@@ -491,6 +541,9 @@ When("I search for the app in Search button", async function () {
 
 When('I Run analysis and wait for completion', { timeout: 900000 }, async function () {
   const { appName, clusterName } = getScenarioData(this);
+  // ensure world has app/cluster set for later diagnostics
+  this.appName = this.appName || appName;
+  this.cluster = this.cluster || clusterName;
   await this.page.getByText('View Apps').first()
     .or(this.page.getByText(/\d+\s*Cluster/i).first())
     .waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
@@ -514,7 +567,7 @@ When('I Run analysis and wait for completion', { timeout: 900000 }, async functi
     await this.page.getByRole('textbox', { name: 'Search' }).click();
     await this.page.getByRole('textbox', { name: 'Search' }).fill(appName);
 
-    const appnamebtn = this.page.getByRole('button', { name: appName });
+    const appnamebtn = this.page.getByRole('button', { name: appName, exact: true } );
     await appnamebtn.waitFor({ state: 'visible', timeout: 20000 });
     await appnamebtn.click({ timeout: 20000 });
 
@@ -563,33 +616,59 @@ When('I Run analysis and wait for completion', { timeout: 900000 }, async functi
 });
 
 Given('I open the onboarded app', async function () {
-  const { appName, clusterName } = getScenarioData(this);
-  const appModernizationLink = this.page.getByRole('link', { name: 'App Modernization' });
+  let appName;
+  let clusterName;
 
-  if (!(await appModernizationLink.isVisible())) {await this.page.getByRole('button', { name: 'Modernization' }).first().click();}
+  try {
+    ({ appName, clusterName } = getScenarioData(this));
+  } catch (e) {
+    appName = this.appName || this.currentApp;
+    clusterName = this.cluster || this.currentCluster;
+    if (!appName || !clusterName) throw e;
+  }
 
-  await appModernizationLink.click();
+const modernization = this.page.getByRole('button', { name: 'Modernization' }).first();
+const appModernization = this.page.getByRole('button', { name: /^App Modernization/ });
+const portfolioAnalysis = this.page.getByText('Portfolio Analysis', { exact: true });
+
+await modernization.waitFor({ state: 'visible' });
+
+if (await portfolioAnalysis.isVisible()) {
+    await portfolioAnalysis.click();
+} else if (await appModernization.isVisible()) {
+    await appModernization.click();
+    await portfolioAnalysis.click();
+} else {
+    await modernization.click();
+    await appModernization.click();
+    await portfolioAnalysis.click();
+}
+
   await expect(this.page.getByRole('textbox', { name: 'Search' })).toBeVisible();
   await this.page.getByRole('textbox', { name: 'Search' }).click();
   await this.page.getByRole('textbox', { name: 'Search' }).fill(clusterName);
-  const card = this.page.getByText(clusterName, { exact: true }).locator('xpath=ancestor::div[3]');
-  await card.getByText('View Apps').click({ timeout: 8000 });
-  //await this.page.getByText('View Apps').click();
+
+  const clusterCard = this.page.getByText(clusterName, { exact: true }).locator('xpath=ancestor::div[3]');
+  await clusterCard.getByText('View Apps').click({ timeout: 8000 }).catch(() => {});
 
   const appLink = this.page.getByRole('button', { name: appName })
     .or(this.page.getByRole('link', { name: appName }));
 
-  await appLink.first().waitFor({ state: 'visible', timeout: 20000 });
+  await appLink.first().waitFor({ state: 'visible', timeout: 30000 });
   await appLink.first().click();
 });
 
 Then(
-'I validate App Stack resources in StackGen for full flow',
-
-async function () {
+'I validate App Stack resources in StackGen for full flow',async function () {
   const { appName, clusterName } = getScenarioData(this);
+    // if (!this.supportedApps || this.supportedApps.length === 0) {
+    //   const msg = 'No supported apps were captured on the main page (Supported shows None or is empty). Skipping StackGen resource validation; verify IaC generation / Update App Stack in the UI.';
+    //   this.attach(msg, 'text/plain');
+    //   throw new Error(msg);
+    // }
+
     const popupPromise =
-        this.page.waitForEvent('popup');
+      this.page.waitForEvent('popup');
 
     await this.page
         .getByRole('link', {
@@ -653,47 +732,53 @@ async function () {
     const names =
         await resourceNames
             .allTextContents();
-
     const screenshot = await this.page1.screenshot({ fullPage: true });
-  this.attach(screenshot, "image/png");
+    this.attach(screenshot, "image/png");
 
     console.log(names);
+    console.log('===== Resource Comparison =====');
 
-    console.log(
-        '===== Resource Comparison ====='
-    );
+    if (!names || names.length === 0) {
+      const msg = `StackGen returned no resources for app ${appName}. Ensure the App Stack exists and was generated/updated.`;
+      this.attach(msg, 'text/plain');
+      throw new Error(msg);
+    }
 
-    for (const app of this.supportedApps) {
+    for (const app of this.availableServices) {
+      const appWords = app
+        .toLowerCase()
+        .replace('amazon', '')
+        .trim()
+        .split(/\s+/);
 
-        const appWords = app
-            .toLowerCase()
-            .replace('amazon', '')
-            .trim()
-            .split(/\s+/);
+      const matched = names.some(resource => {
+        const normalizedResource = resource
+          .toLowerCase()
+          .replace('aws_', '')
+          .replace(/_/g, ' ');
 
-        const matched =
-            names.some(resource => {
+        return appWords.some(word => normalizedResource.includes(word));
+      });
 
-            const normalizedResource =
-                resource
-                    .toLowerCase()
-                    .replace('aws_', '')
-                    .replace(/_/g, ' ');
+      console.log(`${matched ? '✅' : '❌'} ${app}`);
 
-            return appWords.some(word =>normalizedResource.includes(word));
-        });
-
-        console.log(`${matched ? '✅' : '❌'} ${app}`);
-
-      expect(matched).toBeTruthy();
+      if (!matched) {
+        const msg = `No matching StackGen resource found for supported app: ${app}. See attached StackGen screenshot.`;
+        this.attach(msg, 'text/plain');
+        throw new Error(msg);
+      }
     }
 });
 
 Then("I delete the user permission I have given to the cluster",async function(){
   const { clusterName } = getScenarioData(this);
 
-  await this.page.getByRole('button', { name: 'Settings' }).click();
-  await this.page.getByRole('link', { name: 'Authorization' }).click();
+  const authLink = this.page.getByRole('link', { name: 'Authorization' });
+
+  if (!(await authLink.isVisible().catch(() => false))) {
+    await this.page.getByRole('button', { name: 'Settings' }).click();}
+
+  await authLink.click();
   await this.page.getByRole('button', { name: 'User Mapping Assign users to' }).click();
 
   // ── Delete application-architect ──

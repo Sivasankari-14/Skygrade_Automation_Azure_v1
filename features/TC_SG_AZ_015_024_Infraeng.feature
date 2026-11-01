@@ -11,6 +11,6 @@ Feature: App Stack Validation
 
     And I Validate the edit tag button
     
-    And I capture supported resources
+    And I capture available services
     
     And I validate App Stack resources in StackGen separte

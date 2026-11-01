@@ -7,6 +7,21 @@ function getScenarioData(world) {
   const matches = tagNames.filter(t => knownKeys.includes(t));
 
   if (matches.length === 0) {
+    const runtimeCluster = world.cluster || world.currentCluster || process.env.TEST_CLUSTER;
+    const runtimeApp = world.appName || world.currentApp || process.env.TEST_APP;
+
+    if (runtimeCluster && runtimeApp) {
+      return { appName: runtimeApp, clusterName: runtimeCluster, searchCluster: runtimeCluster };
+    }
+
+    if (tagNames.includes('mainframe')) {
+      return {
+        appName: 'Main_App_1',
+        clusterName: 'Mainmainframe_application12',
+        searchCluster: 'Mainmainframe_application12',
+      };
+    }
+
     throw new Error(
       `No matching data.js key found in scenario tags [${tagNames.join(', ')}]. Valid: ${knownKeys.join(', ')}`
     );

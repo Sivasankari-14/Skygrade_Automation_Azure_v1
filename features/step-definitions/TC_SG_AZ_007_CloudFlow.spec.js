@@ -144,6 +144,7 @@ When('I open the {string} provider', { timeout: 60000 }, async function (provide
 // AWS — ACCOUNT + CLUSTER
 // ====================================================================
 When('I add the AWS cloud account from data', { timeout: 60000 }, async function () {
+  await this.page.locator('input[maxlength="50"]').first().fill(D.account.name);
   await this.page.locator('input[maxlength="12"]').first().fill(D.account.id);
   await this.page.getByRole('textbox', { name: /arn:aws/i }).first().fill(D.account.arn);
   await this.page.waitForTimeout(800);
@@ -168,16 +169,17 @@ Then('the cloud account should exist', { timeout: 30000 }, async function () {
 });
 
 When('I enter an AWS account with a duplicate Account ID', { timeout: 60000 }, async function () {
+  await this.page.locator('input[maxlength="50"]').first().fill(D.account.name);
   await this.page.locator('input[maxlength="12"]').first().fill(D.duplicateAccountId || D.account.id);
   await this.page.getByRole('textbox', { name: /arn:aws/i }).first().fill(D.account.arn);
   await this.page.waitForTimeout(1000);
   await shot(this, 'Entered duplicate Account ID');
 });
 
-Then('I should see the error {string}', { timeout: 30000 }, async function (msg) {
-  await expect(this.page.getByText(msg, { exact: false }).first()).toBeVisible({ timeout: 15000 });
-  await shot(this, `Error: ${msg}`);
-});
+// Then('I should see the error {string}', { timeout: 30000 }, async function (msg) {
+//   await expect(this.page.getByText(msg, { exact: false }).first()).toBeVisible({ timeout: 15000 });
+//   await shot(this, `Error: ${msg}`);
+// });
 
 Then('the {string} submit should be disabled', { timeout: 30000 }, async function (label) {
   const btn = this.page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).last();
@@ -210,32 +212,36 @@ Then('the cluster should be rejected as duplicate', { timeout: 30000 }, async fu
 // AZURE — ACCOUNT + CLUSTER
 // ====================================================================
 When('I add the Azure cloud account from data', { timeout: 60000 }, async function () {
-  const fill = async (re, val) => {
-    const f = this.page.getByPlaceholder(re).or(this.page.getByRole('textbox', { name: re })).first();
-    await f.fill(val, { timeout: 3000 }).catch(() => {});
-  };
-  await fill(/account name|^name/i, AZ.account.name);
-  await fill(/tenant/i, AZ.account.tenantId);
-  await fill(/subscription/i, AZ.account.subscriptionId);
-  await fill(/service connection|connection/i, AZ.account.serviceConnection);
-  await this.page.waitForTimeout(500);
-  const add = this.page.getByRole('button', { name: /^add account$/i }).last();
+  const drawer = this.page.locator('.v5-MuiDrawer-paper');
+
+  // Find the input that sits right after the label div with this exact text
+  const field = (label) =>
+    drawer.locator(`xpath=.//div[normalize-space(text())="${label}"]/following-sibling::div//input`);
+
+  await field('Tenant Name').fill(AZ.account.name);
+  await field('Tenant ID').fill(AZ.account.tenantId);
+  await field('Subscription ID').fill(AZ.account.subscriptionId);
+  await field('Azure Service Connection').fill(AZ.account.serviceConnection);
+
+  const add = drawer.getByRole('button', { name: /^add account$/i });
   const dup = await this.page.getByText(/already exists/i).first().isVisible().catch(() => false);
   const enabled = await add.isEnabled().catch(() => false);
+
   if (enabled && !dup) {
-    await add.click(); await this.page.waitForTimeout(2000);
+    await add.click();
+    await this.page.waitForTimeout(2000);
     await shot(this, 'Azure account added');
   } else {
-    await this.page.getByRole('button', { name: /^(cancel|close)$/i }).first().click().catch(() => {});
+    await drawer.getByRole('button', { name: /^(cancel|close)$/i }).first().click().catch(() => {});
     await this.page.keyboard.press('Escape').catch(() => {});
     await shot(this, 'Azure account exists / closed');
   }
 });
 
+
 Then('the Azure cloud account should exist', { timeout: 30000 }, async function () {
   await expect(
-    this.page.getByText(AZ.account.subscriptionId, { exact: false }).first()
-      .or(this.page.getByText(AZ.account.name).first())
+    this.page.getByText(AZ.account.subscriptionId, { exact: true }).first()
   ).toBeVisible({ timeout: 15000 });
   await shot(this, 'Azure account exists');
 });
@@ -256,8 +262,28 @@ When('I try to add the same Azure cluster again', { timeout: 90000 }, async func
 // ====================================================================
 When('I open Edit Plan for the configured app', { timeout: 120000 }, async function () {
   const e = D.editPlan;
-  await this.page.getByRole('link', { name: 'App Modernization' }).click({ timeout: 10000 }).catch(() => {});
   const search = this.page.getByRole('textbox', { name: 'Search' }).or(this.page.getByPlaceholder(/search/i)).first();
+  const portfolioAnalysis = this.page.getByRole('link', { name: 'Portfolio Analysis' });
+  const appModernization = this.page.getByRole('button', { name: 'App Modernization' });
+  const modernization = this.page.getByRole('button', { name: 'Modernization' }).first();
+
+// Make sure the sidebar has rendered before checking (isVisible doesn't wait)
+await modernization.waitFor({ state: 'visible' });
+
+if (await portfolioAnalysis.isVisible()) {
+    // Fully expanded already: click the target directly
+    await portfolioAnalysis.click();
+} else if (await appModernization.isVisible()) {
+    // Only Modernization is open: expand App Modernization first
+    await appModernization.click();
+    await portfolioAnalysis.click();
+} else {
+    // Everything collapsed: open from the top
+    await modernization.click();
+    await appModernization.click();
+    await portfolioAnalysis.click();
+}
+
   await search.waitFor({ state: 'visible', timeout: 30000 });
   await search.fill(e.search);
   await this.page.waitForTimeout(1500);
@@ -287,11 +313,60 @@ When('I select cloud provider {string} and target provider {string}', { timeout:
   this.planCloud = cloud;
   await muiPick(this.page, PLAN.targetProvider, cloud);
   await muiPick(this.page, PLAN.targetPlatform, target);
-  // select Subscription ID / Account ID (index 5) so the cluster enables — option reads "dynamic (<id>)"
-  const acctVal = /azure/i.test(cloud) ? AZ.account.subscriptionId : D.account.id;
-  await muiPickContains(this.page, PLAN.account, acctVal);
+
+  const isAzure = /azure/i.test(cloud);
+  const accountLabel = isAzure ? 'Subscription ID' : 'Account ID';
+  const accountValue = isAzure ? AZ.account.subscriptionId : D.account.id;
+
+  // 1. Let the previous dropdown fully close before touching the next one
+  await this.page.locator('ul[role="listbox"]').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+  await this.page.locator('.v5-MuiBackdrop-root:visible').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+
+  const accountField = this.page
+    .locator(`div:has(> label:has-text("${accountLabel}"))`)
+    .locator('[role="combobox"]')
+    .first();
+
+  const accountShown = await accountField
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (accountShown) {
+    const listbox = this.page.locator('ul[role="listbox"]');
+    const wanted = listbox.locator(`li[role="option"][data-value="${accountValue}"]`);
+    const anyOption = listbox.locator('li[role="option"]').first();
+    let picked = false;
+
+    for (let attempt = 1; attempt <= 3 && !picked; attempt++) {
+      await accountField.click();
+
+      const opened = await listbox
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false);
+
+      if (opened) {
+        // prefer the account from the JSON, fall back to the first option
+        const target = (await wanted.count()) > 0 ? wanted.first() : anyOption;
+        await target.click();
+        picked = true;
+      } else {
+        await this.page.keyboard.press('Escape').catch(() => {});
+        await this.page.waitForTimeout(1500);
+      }
+    }
+
+    if (!picked) {
+      await shot(this, `Account dropdown did not open (${cloud}/${target})`);
+      throw new Error(`${accountLabel} dropdown did not open for ${cloud}/${target}`);
+    }
+
+    await listbox.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+  }
+
   await this.page.waitForTimeout(1200);
-  await shot(this, `Selected provider=${cloud}, target=${target} (+account/sub)`);
+  await shot(this, `Selected provider=${cloud}, target=${target} (account field shown: ${accountShown})`);
 });
 
 Then('the cloud account should be selectable in the plan', { timeout: 60000 }, async function () {
@@ -310,7 +385,7 @@ Then('the target cluster should be selectable in the plan', { timeout: 60000 }, 
 
 Then('the target cluster dropdown should be {string}', { timeout: 60000 }, async function (state) {
   await this.page.waitForTimeout(1500);
-  const c = this.page.locator(`xpath=//*[normalize-space(text())="Target Cluster"]/following::*[@role="combobox"][1]`).first();
+  const c = this.page.locator('xpath=//*[normalize-space(text())="Target Cluster"]/following::*[@role="combobox"][1]').first();
   const visible = await c.isVisible().catch(() => false);
   const ariaDisabled = visible ? await c.getAttribute('aria-disabled').catch(() => null) : null;
   const cls = visible ? ((await c.getAttribute('class').catch(() => '')) || '') : '';

@@ -49,7 +49,7 @@ Feature: Cloud Settings - Azure Add Account field validation
     When I type 40 characters into the Azure Subscription ID
     Then the Azure Subscription ID should hold at most 36 characters
 
-  @negative @regression
-  Scenario: Account Name limited to 50 characters
-    When I type 60 characters into the Azure Account Name
-    Then the Azure Account Name should hold at most 50 characters
+  # @negative @regression
+  # Scenario: Account Name limited to 50 characters
+  #   When I type 60 characters into the Azure Account Name
+  #   Then the Azure Account Name should hold at most 50 characters

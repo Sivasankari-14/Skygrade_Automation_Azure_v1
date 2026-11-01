@@ -26,6 +26,26 @@ const doKeycloakLogin = async (page, username, password, landing) => {
   if (!popup.isClosed()) await popup.close().catch(() => {});
 };
 
+const resetSessionForRoleChange = async (page, role) => {
+  if (!state.currentRole || state.currentRole === role) return;
+
+  try {
+    await page.context().clearCookies();
+  } catch (e) {}
+
+  try {
+    await page.evaluate(() => {
+      try { localStorage.clear(); } catch (e) {}
+      try { sessionStorage.clear(); } catch (e) {}
+    });
+  } catch (e) {}
+
+  try {
+    await page.getByRole('button', { name: /profile|user/i }).click({ timeout: 5000 });
+    await page.getByRole('menuitem', { name: /log out|logout/i }).click({ timeout: 5000 });
+  } catch (e) {}
+};
+
 Given('I am logged in', { timeout: 240000 }, async function () {
   const u = DATA.users['skygrade-admin'];
 
@@ -52,6 +72,7 @@ Given('I am logged in as {string}', { timeout: 240000 }, async function (role) {
   const u = DATA.users[role];
   if (!u) throw new Error(`No user "${role}" in rbac-data.json`);
 
+  await resetSessionForRoleChange(this.page, role);
   await this.page.goto(DATA.appUrl, { waitUntil: 'domcontentloaded' });
 
   const landing  = this.page.getByRole('button', { name: 'Create Portfolio' })
@@ -63,16 +84,18 @@ Given('I am logged in as {string}', { timeout: 240000 }, async function (role) {
     keycloak.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {}),
   ]);
 
-  // Already landed (shared session) → skip login entirely.
   const alreadyLanded = await landing.first().isVisible().catch(() => false);
-  if (!alreadyLanded) {
-    // Only attempt Keycloak if the sign-in entry point is actually there,
-    // otherwise waitForEvent('page') would hang until timeout.
-    const needsLogin = await keycloak.isVisible().catch(() => false)
-      || await this.page.getByRole('button', { name: /sign in/i }).first().isVisible().catch(() => false);
-    if (needsLogin) {
-      await doKeycloakLogin(this.page, u.username, u.password, landing);
-    }
+  if (alreadyLanded && state.currentRole === role) {
+    return;
+  }
+
+  const needsLogin = !alreadyLanded && (
+    await keycloak.isVisible().catch(() => false)
+    || await this.page.getByRole('button', { name: /sign in/i }).first().isVisible().catch(() => false)
+  );
+
+  if (needsLogin || (!alreadyLanded && state.currentRole !== role)) {
+    await doKeycloakLogin(this.page, u.username, u.password, landing);
   }
 
   await landing.first().waitFor({ state: 'visible', timeout: 60000 });

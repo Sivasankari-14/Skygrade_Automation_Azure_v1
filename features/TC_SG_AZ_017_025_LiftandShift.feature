@@ -7,6 +7,8 @@ Feature: Lift And Shift Accelerator
 
     When I open the Lift And Shift application
 
+    And I compare the application details from plan tab to build tab
+
     And I configure Lift And Shift
 
     And I update Lift And Shift tags

@@ -6,7 +6,7 @@
   },
   "cluster": { "region": "ap-east-1" },
   "duplicateAccountId": "123984378473",
-  "editPlan": { "search": "Mytes", "app": "ertapperd2323" },
+  "editPlan": { "search": "endtoendtest", "app": "NMFrehost" },
   "azure": {
     "account": {
       "name": "AzureAccount1",

@@ -4,9 +4,7 @@ const { pipeline } = require('../config/data');
 
 When('I open the Pipeline application', async function () {
 
-    await this.page.getByRole('textbox', {
-        name: 'Search'
-    }).click();
+    await this.page.getByRole('textbox', {name: 'Search'}).click();
 
     await this.page.getByRole('textbox', {
         name: 'Search'
@@ -20,15 +18,15 @@ When('I open the Pipeline application', async function () {
         name: pipeline.applicationName
     }).click();
 
-    await this.page.getByRole('button', {
-        name: 'Previous'
-    }).click();
+    await this.page.getByRole('button', { name: 'Deploy Deploy' }).click();
 
     const screenshot = await this.page.screenshot({ fullPage: true });
     this.attach(screenshot, "image/png");
 });
 
 Then('I create a CI Pipeline', async function () {
+
+    await this.page.getByRole('button', { name: 'Deploy Deploy' }).click();
 
     await this.page.waitForSelector(
         'button:has-text("Create New Pipeline"), button:has-text("Create Pipeline")',
@@ -77,52 +75,50 @@ Then('I create a CI Pipeline', async function () {
         })
         .click();
 
-    await this.page.getByRole('textbox', {
-        name: 'AWS Region'
-    }).fill('us-east-1');
+    await this.page.getByRole('textbox', { name: 'Java Artifact ID' }).click();
+    await this.page.getByRole('textbox', { name: 'Java Artifact ID' }).fill('ci-demo');
+    await this.page.getByRole('textbox', { name: 'Project Name of Checkmarx' }).click();
+    await this.page.getByRole('textbox', { name: 'Project Name of Checkmarx' }).fill(pipeline.applicationName);
+    await this.page.getByRole('textbox', { name: 'Project Name of Blackduck' }).click();
+    await this.page.getByRole('textbox', { name: 'Project Name of Blackduck' }).fill(pipeline.applicationName);
+    await this.page.getByRole('textbox', { name: 'Branch Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Branch Name' }).fill('main');
+    await this.page.getByRole('textbox', { name: 'Runner Label' }).click();
+    await this.page.getByRole('textbox', { name: 'Runner Label' }).fill(`arc-runner-set-${pipeline.applicationName}`);
+    await expect(this.page.getByRole('button', { name: 'Review' })).toBeVisible();
+    await this.page.getByRole('button', { name: 'Review' }).click();
+    await expect(this.page.getByRole('button', { name: 'Create' })).toBeVisible();
+    await expect(this.page.getByRole('button', { name: 'Back' })).toBeVisible();
+    await this.page.getByRole('button', { name: 'Create' }).click();
+    await expect(this.page.getByText('Run of Spring Boot With Azure')).toBeVisible();
+    await this.page.waitForTimeout(7000);
+    
 
-    await this.page.getByRole('textbox', {
-        name: 'Branch Name'
-    }).fill('main');
-
-    await this.page.getByRole('textbox', {
-        name: 'Java Artifact ID'
-    }).fill('ci-demo');
-
-    await this.page.getByRole('textbox', {
-        name: 'Project Key of Sonarqube'
-    }).fill('test');
-
-    await this.page.getByRole('textbox', {
-        name: 'Project Name of Checkmarx'
-    }).fill('test');
-
-    //await this.page.getByRole('textbox', {name: 'Owner'}).click();
-
-    //await this.page.getByText('catalog-admin').click();
-
-    //await this.page.getByRole('button', {name: 'Next'}).click();
-
-    await this.page.getByRole('button', { name: 'Review'}).click();
-
-    await this.page.getByRole('button', {name: 'Create'}).click();
-
-    await expect(this.page.getByText('Run of Spring Boot with Azure CI pipeline Using GitHub')).toBeVisible();
-
-    await this.page.waitForTimeout(5000);
     const screenshot = await this.page.screenshot({ fullPage: true });
     this.attach(screenshot, "image/png");
 });
 
 Then('I verify the CI Pipeline is created', async function () {
 
-    await this.page.getByRole('button', { name: 'Modernization' }).click();
-    //await this.page.getByTestId('login-button').click();
-    //await this.page.getByRole('link', {name: 'Modernization'}).click();
+    const modernization = this.page.getByRole('button', { name: /^Modernization/ });
+    const appModernization = this.page.getByRole('button', { name: /^App Modernization/ });
+    const portfolioAnalysis = this.page.getByText('Portfolio Analysis', { exact: true });
 
-    await this.page.getByRole('link', {
-        name: 'App Modernization'
-    }).click();
+    await modernization.waitFor({ state: 'visible' });
+
+    const isExpanded = async (btn) => (await btn.textContent()).includes('−');
+
+    if (!(await portfolioAnalysis.isVisible())) {
+    if (!(await appModernization.isVisible())) {
+        await modernization.click();
+    }
+    if (!(await isExpanded(appModernization))) {
+        await appModernization.click();
+        }
+    }
+    await portfolioAnalysis.click();
+
+    
 
     await this.page.getByRole('textbox', {
         name: 'Search'
@@ -136,18 +132,18 @@ Then('I verify the CI Pipeline is created', async function () {
         name: pipeline.applicationName
     }).click();
 
-    await this.page.getByRole('button', {
-        name: 'Previous'
-    }).click();
+    await this.page.getByRole('button', { name: 'Deploy Deploy' }).click();
 
     await expect(
         this.page.getByText(
-            `skygrade-${pipeline.applicationName}-ci-pipeline`
+            `skygrade-${pipeline.applicationName}-ci`
         )
     ).toBeVisible();
 });
 
 Then('I create a CD Pipeline', async function () {
+
+    await this.page.getByRole('button', { name: 'Deploy Deploy' }).click();
 
     const isNewPipeline = await this.page
         .getByRole('button', {
@@ -171,7 +167,7 @@ Then('I create a CD Pipeline', async function () {
 
     await expect(
         this.page.getByRole('heading', {
-            name: 'AWS CD pipeline using Github'
+            name: 'Azure CD pipeline using Github'
         })
     ).toBeVisible();
 
@@ -190,79 +186,38 @@ Then('I create a CD Pipeline', async function () {
         .getByTestId('template-card-actions--create')
         .click();
 
-    await this.page.getByRole('textbox', {
-        name: 'AWS Region'
-    }).fill('us-east-1');
+    await this.page.getByRole('textbox', { name: 'Azure Location' }).click();
+    await this.page.getByRole('textbox', { name: 'Azure Location' }).fill('eastus');
+    await this.page.getByRole('textbox', { name: 'Branch Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Branch Name' }).fill('main');
+    await this.page.getByRole('textbox', { name: 'App Name' }).click();
+    await this.page.getByRole('textbox', { name: 'App Name' }).fill(pipeline.applicationName.toLowerCase());
+    await this.page.getByRole('textbox', { name: 'Image Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Image Name' }).fill(`crskygrade.azurecr.io/${pipeline.applicationName}`);
+    await this.page.getByRole('textbox', { name: 'Runner Label' }).click();
+    await this.page.getByRole('textbox', { name: 'Runner Label' }).fill(`arc-runner-set-${pipeline.applicationName}`);    await this.page.getByRole('textbox', { name: 'Namespace Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Namespace Name' }).fill('skygrade');
+    await this.page.getByRole('textbox', { name: 'Cluster Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Cluster Name' }).fill('AKS');
+    await this.page.getByRole('textbox', { name: 'Cluster Name' }).fill('AKS-skygrade-dev');
+    await this.page.getByRole('textbox', { name: 'Storage Account Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Storage Account Name' }).fill('strgskygradedev');
+    await this.page.getByRole('textbox', { name: 'Container Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Container Name' }).fill('skygrade-pipeline');
+    await this.page.getByRole('textbox', { name: 'Managed Identity Client ID' }).click();
+    await this.page.getByRole('textbox', { name: 'Managed Identity Client ID' }).fill('f0cb6743-ac87-40c1-84c2-ffb46596fc71');
+    await this.page.getByRole('textbox', { name: 'Resource Group Name' }).click();
+    await this.page.getByRole('textbox', { name: 'Resource Group Name' }).fill('RG-skygrade');
+    await expect(this.page.getByRole('button', { name: 'Review' })).toBeVisible();
+    await this.page.getByRole('button', { name: 'Review' }).click();
+    await this.page.waitForTimeout(3000);
 
-    await this.page.getByRole('textbox', {
-        name: 'Branch Name'
-    }).fill('main');
-
-    await this.page.getByRole('textbox', {
-        name: 'App Name'
-    }).fill('sb-app4');
-
-    await this.page.getByRole('textbox', {
-        name: 'Image Name'
-    }).fill('916849114231.dkr.ecr.us-east-1.amazonaws.com/skygrade-appdynamics-sample-app');
-
-    await this.page.getByRole('textbox', {
-        name: 'Namespace Name'
-    }).fill('skygrade-dev');
-
-    await this.page.getByRole('textbox', {
-        name: 'Cluster Name'
-    }).fill('EKS-Skygrade-dev');
-
-    await this.page.getByRole('textbox', {
-        name: 'Bucket Name'
-    }).fill('S3-Skygrade');
-
-    await this.page.getByRole('textbox', {
-        name: 'DynamoDB Table Name'
-    }).fill('skygrade-terraform-locks');
-
-    await this.page.getByRole('textbox', {
-        name: 'Code Build ARN'
-    }).fill('arn:aws:iam::916849114231:role/Role-codebuild-skygrade-useast1');
-
-    await this.page.getByRole('textbox', {
-        name: 'EKS Role ARN'
-    }).fill('arn:aws:iam::916849114231:role/Role-EKS-skygrade-dev-serviceaccount-useast1');
-
-    await this.page.getByRole('textbox', {
-        name: 'VPC ID'
-    }).fill('vpc-0acb6f2820eb43cb7');
-
-    await this.page.getByRole('textbox', {
-        name: 'SUBNET ID 1'
-    }).fill('subnet-0221dfd782fb67694');
-
-    await this.page.getByRole('textbox', {
-        name: 'SUBNET ID 2'
-    }).fill('subnet-0c9512a8504647b26');
-
-    await this.page.getByRole('textbox', {
-        name: 'Security Group ID'
-    }).fill('sg-0f9eaa3c782621736');
-
-    //await this.page.getByRole('textbox', { name: 'Owner'}).click();
-
-    //await this.page.getByText('catalog-admin').click();
-
-    //await this.page.getByRole('button', {name: 'Next'}).click();
-
-    //await this.page.getByRole('textbox').nth(1).fill('appdynamics-sample-app');
-
-    await this.page.getByRole('button', {
-        name: 'Review'
-    }).click();
-
-    await this.page.getByRole('button', {
-        name: 'Create'
-    }).click();
-
-    await this.page.waitForTimeout(5000);
+    await expect(this.page.getByRole('button', { name: 'Create' })).toBeVisible();
+    await expect(this.page.getByRole('button', { name: 'Back' })).toBeVisible();
+    await this.page.getByRole('button', { name: 'Create' }).click();
+    await expect(this.page.getByText('Run of Azure CD pipeline using Github Actions')).toBeVisible();
+    await this.page.waitForTimeout(7000);
+  
     const screenshot = await this.page.screenshot({ fullPage: true });
     this.attach(screenshot, "image/png");
 
@@ -270,13 +225,23 @@ Then('I create a CD Pipeline', async function () {
 
 Then('I verify the CD Pipelines are created', async function () {
 
-    await this.page.getByRole('button', { name: 'Modernization' }).click();
-    //await this.page.getByTestId('login-button').click();
-    //await this.page.getByRole('link', {name: 'Modernization'}).click();
+    const modernization = this.page.getByRole('button', { name: /^Modernization/ });
+    const appModernization = this.page.getByRole('button', { name: /^App Modernization/ });
+    const portfolioAnalysis = this.page.getByText('Portfolio Analysis', { exact: true });
 
-    await this.page.getByRole('link', {
-        name: 'App Modernization'
-    }).click();
+    await modernization.waitFor({ state: 'visible' });
+
+    const isExpanded = async (btn) => (await btn.textContent()).includes('−');
+
+    if (!(await portfolioAnalysis.isVisible())) {
+    if (!(await appModernization.isVisible())) {
+        await modernization.click();
+    }
+    if (!(await isExpanded(appModernization))) {
+        await appModernization.click();
+        }
+    }
+    await portfolioAnalysis.click();
 
     await this.page.getByRole('textbox', {
         name: 'Search'
@@ -290,25 +255,23 @@ Then('I verify the CD Pipelines are created', async function () {
         name: pipeline.applicationName
     }).click();
 
-    await this.page.getByRole('button', {
-        name: 'Previous'
-    }).click();
+    await this.page.getByRole('button', { name: 'Deploy Deploy' }).click();
 
     await expect(
         this.page.getByText(
-            `skygrade-${pipeline.applicationName}-cd-pipeline_dev`
+            `skygrade-${pipeline.applicationName}-cd-pipeline-dev`
         )
     ).toBeVisible();
 
     await expect(
         this.page.getByText(
-            `skygrade-${pipeline.applicationName}-cd-pipeline_qa`
+            `skygrade-${pipeline.applicationName}-cd-pipeline-qa`
         )
     ).toBeVisible();
 
     await expect(
         this.page.getByText(
-            `skygrade-${pipeline.applicationName}-cd-pipeline_prod`
+            `skygrade-${pipeline.applicationName}-cd-pipeline-prod`
         )
     ).toBeVisible();
     const screenshot = await this.page.screenshot({ fullPage: true });

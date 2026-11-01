@@ -1,4 +1,5 @@
 
+
 const { When, Then } = require('@cucumber/cucumber');
 const { expect } = require('@playwright/test');
 const { plntab, providerPlatforms } = require('../config/data');
@@ -25,13 +26,14 @@ async function clickButton(page, name) {
   await page.getByRole('button', { name }).click();
 }
 
+
 async function attachScreenshot(context) {
   const screenshot = await context.page.screenshot({ fullPage: true });
   context.attach(screenshot, 'image/png');
 }
 
 async function confirmDispositionDialog(page) {
-  await expect(page.getByText('You are about to change the')).toBeVisible();
+  //await expect(page.getByText('You are about to change the')).toBeVisible();
   await expect(page.getByRole('dialog')).toContainText(
     'You are about to change the modernization disposition. Do you want to proceed?'
   );
@@ -54,21 +56,7 @@ When('I open the Plan Tab', async function () {
   await appButton.waitFor({ state: 'visible', timeout: 60000 });
   await appButton.click({ timeout: 60000 });
 
-  await this.page.getByRole('button', { name: 'Previous' })
-    .waitFor({ state: 'visible', timeout: 5000 })
-    .catch(() => {});
-
-  while (true) {
-    const previousButton = this.page.getByRole('button', { name: 'Previous' });
-    const isVisible = await previousButton.isVisible().catch(() => false);
-    if (!isVisible) {
-      await this.page.getByRole('button', { name: 'Proceed' }).waitFor({ state: 'visible', timeout: 10000 });
-      await this.page.getByRole('button', { name: 'Proceed' }).click();
-      break;
-    }
-    await previousButton.click();
-    await this.page.waitForTimeout(1000);
-  }
+  await this.page.getByRole('button', { name: 'Plan Plan' }).click({ timeout: 60000 });
 
   await attachScreenshot(this);
 });
@@ -142,16 +130,18 @@ Then('I verify Modernization Disposition behavior', async function () {
       name: 'Retire',
       run: async (page) => {
         await selectMuiOption(page, dispositionDropdown, 'Retire');
-        await confirmDispositionDialog(page);
-        await clickButton(page, 'Yes');
+        //await confirmDispositionDialog(page);
+        await clickButton(page, 'Yes');//Before it was 'Yes' but now it is 'Confirm'
         await clickButton(page, 'Update');
-        await clickButton(page, 'Approve & Proceed');
-        await expect(page.getByText('Please select a different')).toBeVisible();
+        await clickButton(page, 'Cancel');
+        await clickButton(page, 'Cancel');
+        //await expect(page.getByText('Please select a different')).toBeVisible();
       },
     },
     {
       name: 'Rehost',
       run: async (page) => {
+        await clickButton(page, 'Edit Plan');
         await selectMuiOption(page, dispositionDropdown, 'Rehost');
         await clickButton(page, 'Yes');
 

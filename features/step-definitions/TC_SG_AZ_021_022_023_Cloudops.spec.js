@@ -16,11 +16,13 @@ When('I open the configured application', { timeout: 120000 }, async function ()
   await this.page.waitForTimeout(1000);
   await this.page.getByRole('button', { name: C.app.name }).click({ timeout: 20000 });
   await this.page.waitForTimeout(1500);
+  await this.page.getByRole('button', {name : 'Cloud Ops Cloud Ops'}).click({ timeout: 15000 }).catch(() => {});
   await shot(this, `Opened app ${C.app.name}`);
 });
 
 // ---- shared: go to a phase (Data Engineering / Observability / Security / FinOps) ----
 When('I go to the {string} phase', { timeout: 60000 }, async function (phase) {
+  await this.page.getByRole('button', {name : 'Cloud Ops Cloud Ops'}).click({ timeout: 15000 }).catch(() => {});
   await this.page.getByText(phase, { exact: true }).first().click({ timeout: 15000 }).catch(() => {});
   await this.page.waitForTimeout(1500);
   await shot(this, `Phase: ${phase}`);
@@ -36,7 +38,7 @@ When('I edit observability tags', { timeout: 60000 }, async function () {
   await shot(this, 'Observability tags updated');
 });
 Then('the application log details should be visible', { timeout: 30000 }, async function () {
-  await expect(this.page.getByText(/Application Log details/i).first()).toBeVisible({ timeout: 20000 });
+  await expect(this.page.getByText(/Application Log details/i).first()).toBeVisible({ timeout: 30000 });
   await shot(this, 'Application Log details visible');
 });
 

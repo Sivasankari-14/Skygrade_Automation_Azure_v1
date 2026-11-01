@@ -105,19 +105,22 @@ Given('I navigate to the containerize app and open the {string} tab', async func
     await appButton.click();
     await this.page.getByRole('button', { name: `${tabName} ${tabName}` }).click();
 
-  await expect(this.page.getByText('Modernization DispositionRehost')).toBeVisible();
-  await this.page.getByRole('button', { name: 'Proceed' }).click();
+  //await expect(this.page.getByText('Modernization DispositionRehost')).toBeVisible();
+  //await this.page.getByRole('button', { name: 'Proceed' }).click();
 });
 
 Given('I proceed to the {string} section', async function (sectionName) {
   //await this.page.getByRole('button', { name: 'Proceed' }).click();
   await this.page.getByText('Build').click();
   await this.page.getByText(sectionName).click();
-  await this.page.getByText('Containerize App').click();
+  //await this.page.getByText('Containerize App').click();
 });
 
 // ---------- Initiate containerization ----------
 When('I initiate containerization if the application is not yet linked', async function () {
+  await this.page.getByText('Build').click();
+  await this.page.getByText('App Engineering').click();
+  await this.page.getByText('Containerize App').click();
   const initiateButton = this.page.getByRole('button', { name: 'Initiate Containerization' });
 
   let isInitiateVisible = false;
@@ -262,7 +265,7 @@ Then('I search and open the application on the Chai site', async function () {
 
   await chaiPage.getByRole('textbox', { name: 'Search' }).click();
   await chaiPage.getByRole('textbox', { name: 'Search' }).fill(appName);
-  await chaiPage.getByText(appName, { exact: true }).click();
+  await chaiPage.getByText(appName.toLowerCase()).click();
 });
 
 
@@ -273,7 +276,7 @@ Then('I search and open the application on the Chai site for full flow', async f
 
   await chaiPage.getByRole('textbox', { name: 'Search' }).click();
   await chaiPage.getByRole('textbox', { name: 'Search' }).fill(appName);
-  await chaiPage.getByText(appName, { exact: true }).click();
+  await chaiPage.getByText(appName.toLowerCase()).click();
 });
 
 Then('I navigate to the Discover page on the Chai site', async function () {

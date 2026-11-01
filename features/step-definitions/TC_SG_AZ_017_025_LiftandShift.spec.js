@@ -80,6 +80,8 @@ async function () {
 
 When('I configure Lift And Shift', async function () {
     await this.page.getByText('Build').click();
+    await this.page.getByText('App Engineering').click();
+    
     this.newServer = generateRandomIP();
 
     do {

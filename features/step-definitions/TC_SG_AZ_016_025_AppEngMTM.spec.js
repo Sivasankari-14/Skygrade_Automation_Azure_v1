@@ -34,6 +34,84 @@ When('I open the App Engineering application',async function () {
     await this.page.waitForTimeout(2000);
 });
 
+When('I compare the application details from plan tab to build tab', async function () {
+    
+    async function getAccelerators(container) {
+    const itemSelector = 'div:has(> img)';
+    await container.locator(itemSelector).first().waitFor({ state: 'visible' });
+
+    const items = await container.locator(itemSelector).all();
+    const accelerators = [];
+
+    for (const item of items) {
+        const label = (await item.textContent())?.trim();
+        if (label) accelerators.push(label);
+    }
+
+    return accelerators;
+    }
+
+    // ---------------------------------------------------------
+      // STEP 1: Capture Services (Chips) — resilient to prefix drift (v5- -> v6- etc.)
+      // ---------------------------------------------------------
+      const chipLabelSelector = '[class*="MuiChip-label"]';
+      await this.page.locator(chipLabelSelector).first().waitFor({ state: 'visible' });
+    
+      const rawServices = await this.page.locator(chipLabelSelector).allTextContents();
+      const services = rawServices.map(s => s.trim()).filter(s => s.length > 0);
+    
+      console.log('Captured services:', services);
+      console.log('Total services count:', services.length);
+      expect(services.length).toBeGreaterThan(0);
+    
+      // ---------------------------------------------------------
+      // STEP 2: Capture Accelerators BEFORE clicking "Plan"
+      // ---------------------------------------------------------
+      const acceleratorsBefore = await getAccelerators(this.page.locator('body'));
+      console.log('Accelerators before Plan click:', acceleratorsBefore);
+      expect(acceleratorsBefore.length).toBeGreaterThan(0);
+    
+      // ---------------------------------------------------------
+      // STEP 3: Click "Plan" and capture Accelerators AFTER
+      // ---------------------------------------------------------
+      await this.page.getByRole('button', { name: 'Plan Plan' }).click();
+    
+      // Scope to the flex-wrap container seen in the Plan screen HTML
+      const planContainer = this.page.locator('div[style*="display: flex"][style*="flex-wrap: wrap"]');
+      const acceleratorsAfter = await getAccelerators(planContainer);
+      console.log('Accelerators after Plan click:', acceleratorsAfter);
+      expect(acceleratorsAfter.length).toBeGreaterThan(0);
+    
+      // ---------------------------------------------------------
+      // STEP 4: Dynamic comparison between before & after lists
+      // ---------------------------------------------------------
+      const normalize = value => value.trim().toLowerCase();
+      const setBefore = new Set(acceleratorsBefore.map(normalize));
+      const setAfter = new Set(acceleratorsAfter.map(normalize));
+    
+      const missing = acceleratorsBefore
+        .map(normalize)
+        .filter(x => !setAfter.has(x));
+      const added = acceleratorsAfter
+        .map(normalize)
+        .filter(x => !setBefore.has(x));
+      const matched = acceleratorsBefore
+        .map(normalize)
+        .filter(x => setAfter.has(x));
+    
+      console.log(' Matched:', matched);
+      console.log(' Missing (was on Build page, not on Plan page):', missing);
+      console.log(' Added (new on Plan page):', added);
+    
+      // Assert the two lists are identical regardless of order and case
+      expect([...setBefore].sort()).toEqual([...setAfter].sort());
+    
+      await this.page.getByRole('button', { name: 'Build Build' }).click();
+    
+
+});
+
+
 When('I configure Monolith Breakdown',async function () {
     await this.page.getByText('Build').click();
     await this.page
@@ -166,6 +244,8 @@ await page1
             'networkidle'
         );
 
+    await page1.waitForTimeout(5000);
+
     await page1
         .getByRole('link', {
             name: 'Learning'
@@ -199,9 +279,7 @@ await page1
                 .innerText()
         ).trim();
 
-    expect(
-        this.domains1
-    ).toBe(this.domains);
+    expect(this.domains1).toBe(this.domains);
 
     expect(
         this.functions1
@@ -210,6 +288,7 @@ await page1
     expect(
         this.resources1
     ).toBe(this.resources);
+
 
     console.log({
         domains1: this.domains1,

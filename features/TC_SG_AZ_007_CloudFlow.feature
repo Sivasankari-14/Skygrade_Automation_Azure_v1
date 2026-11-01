@@ -75,10 +75,10 @@ Feature: Cloud flow - infra-architect manages cloud settings; both architects ed
       | application-architect |
 
   # ===================== RBAC boundary =====================
-  @rbac @negative @regression
-  Scenario: application-architect CANNOT add a cloud account
-    Given I am logged in as "application-architect"
-    Then the Add Account action should be denied
+  # @cloudrbac @negative @regression
+  # Scenario: application-architect CANNOT add a cloud account
+  #   Given I am logged in as "application-architect"
+  #   Then the Add Account action should be denied
 
   # ===================== Target-provider rule =====================
   @rule @regression

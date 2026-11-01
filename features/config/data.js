@@ -1,8 +1,5 @@
 module.exports = {
-  pipeline: {
-    searchText: 'nonmain',
-    applicationName: 'NonMaintest01'
-  },
+  
   morpheus: {
     username: 'skygrade-dev-user',
     password: 'Skygrade2025#'
@@ -26,8 +23,8 @@ module.exports = {
     },
   },
   analysiscomparison: {
-        searchText: 'NonMaintest01',//EndtoEndtest
-        applicationName: 'NonMaintest01'//Nonmainframe
+        searchText: 'EndtoEndtest',//EndtoEndtest
+        applicationName: 'NMFRehost'//Nonmainframe
     },
   cast: {
         email:'Santhosh.M21dd6e@cognizant.com',
@@ -55,6 +52,10 @@ module.exports = {
     password: 'MatildaDemo1'
     },
 
+    toolsToggle: {
+    applicationName: 'Skipped1',
+    },
+
   containerizeApp: {
         applicationName: process.env.APP_NAME || 'NMFrehost',
         chai: {
@@ -69,10 +70,7 @@ module.exports = {
     },
     pipeline: {
         searchText: 'EndtoEndTest',
-        applicationName: 'NonMainframe',
-        crossProviderAppStack: 'NonMainframe',
-        invalidAppStack: 'nmfrehost',
-        validAppStack: 'NMFrehost'
+        applicationName: 'NMFCICD',
     },
 
     InfraEng: {
@@ -90,7 +88,39 @@ module.exports = {
     {
     clusterName: 'EndtoEndTest',
     expectedDispositions: ['Rehost', 'Refactor', 'Rearchitect', 'Rebuild', 'Retire'],
+
+    addApplication: {
+    newNamePrefix: 'sanity',             // a timestamp is appended on every run
+    scmUrl: 'https://github.com/TheCognizantFoundry/mainframe-card-demo.git',
+    invalidScmUrl: 'negative',
+    critical: 'Yes',
+    os: 'Linux (x86)',
+    currentProvider: 'Azure',
+    targetProvider: 'AWS',
+    currentPlatform: 'AKS',
+    targetPlatform: 'EKS',
+    avgFte: '96',
+
+    // label = unique fragment of the question text, option = title of the option
+    survey: [
+      { label: 'Does the application serve internal or external users?', option: 'Internal users or business processes' },
+      { label: 'approximate number of end users', option: 'Less than', exact: false },
+      { label: 'lead to disruption', option: 'Low' },
+      { label: 'loss of revenue or business opportunity', option: 'Low' },
+      { label: 'harm of the company', option: 'Medium' },
+      { label: 'loss of customer confidence', option: 'Medium' },
+      { label: 'future technology direction', option: 'Yes' },
+      { label: 'major releases delivered', option: 'Less than 4', exact: false },
+    ],
+
+    messages: {
+      duplicate: '"{name}" already exists.',
+      identical: 'Current and Target configurations cannot be identical. Please select a different target.',
+      required: 'Required',
+      invalidUrl: 'Must be in the format https://github.com/<organization>/<repository>',
     },
+    }
+  },
     dependencyTreeWalk: 
     {
     applicationName: 'NMFrehost',
@@ -104,14 +134,14 @@ module.exports = {
       searchCluster:"Newport",
     },
     rearchitect: {
-      appName: 'NonMainframe',       
-      clusterName: 'EndtoEndTest',   
-      searchCluster: 'EndtoEnd',     
+      appName: 'azureappanalysis2002',       
+      clusterName: 'Newportfolio',   
+      searchCluster: 'Newport',     
     },
     rehost: {
-      appName: 'ae2e3',    
-      clusterName: 'AE2E',    
-      searchCluster: 'AE2E',  
+      appName: 'RehostAuto',     
+      clusterName:'Fullflow',     
+      searchCluster:'Fullfl'   
     },
     retire: {
       appName: 'NerdDinner_1788762122837',        
@@ -119,9 +149,9 @@ module.exports = {
       searchCluster: 'QACluster_737',  
     },
     rehostrearchitect: {
-      appName: 'deploytest',
-      clusterName: 'QATEST',
-      searchCluster: 'QATEST',
+      appName: 'NonMaintest01',//	RehostAuto
+      clusterName: 'NonMain',//fullflow
+      searchCluster: 'NonMain',//fullfl
     },
   },
 

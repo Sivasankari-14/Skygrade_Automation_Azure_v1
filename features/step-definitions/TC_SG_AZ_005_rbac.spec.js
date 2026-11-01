@@ -208,13 +208,27 @@ const PROBES = {
   },
 
 
+INITIATE_IAC_GENERATION: async (p) => {
+  await openApp(p);
+  await stage(p, 'Build');
+  await subtab(p, 'Infra Engineering');
 
-  INITIATE_IAC_GENERATION: async(p) => {
-    await openApp(p);
-    await stage(p, 'Build');
-    await subtab(p, 'Infra Engineering');
-    return p.getByRole('button', { name: /Initiate IaC Generation/i }).first();
-  },
+  // Initiate IaC Generation -> <button>
+  const initiate = p.getByRole('button', { name: /Initiate IaC Generation/i });
+
+  const edittag = p.getByRole('button', { name: /Edit Tags/i });
+
+  // View App Stack / Update App Stack -> <a href> (role = link)
+  const viewOrUpdate = p.getByRole('link', { name: /View App Stack|Update App Stack/i });
+
+  //const btn = initiate.or(viewOrUpdate).filter({ visible: true }).first();
+  const btn = initiate.or(edittag).filter({ visible: true }).first();
+
+  await btn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+  return btn;
+},
+
+
   CREATE_PIPELINE:            async(p) => { await openApp(p); await stage(p, 'Deploy'); return p.getByRole('button', { name: /Create( New)? Pipeline/i }); },
 
   OBSERVABILITY:              async(p) => { await openApp(p); await stage(p, 'Cloud Ops'); await subtab(p, 'Observability'); return p.getByRole('button', { name: /edit tag/i }); },
@@ -240,7 +254,7 @@ const PROBES = {
     await stage(p, 'Build');
     await subtab(p, 'App Engineering');
     return p.getByRole('button', {
-      name: /Initiate Monolith Breakdown|Run BRE Analysis|Initiate Lift And Shift|Re-?initiate Analysis|Re-?Run BRE/i
+      name: /Initiate Monolith Breakdown|Run BRE Analysis|Initiate Analysis|Re-?initiate Analysis|Re-?Run BRE/i
     }).first();
   },
 
@@ -249,7 +263,7 @@ const PROBES = {
     await openApp(p, 'mainframe');
     await stage(p, 'Build');
     await subtab(p, 'App Engineering');
-    return p.getByRole('button', { name: /Re-?initiate Analysis|Re-?Run BRE|Re-?Run Analysis/i }).first();
+    return p.getByRole('button', { name: /Re-?initiate Analysis|Initiate Analysis|Re-?Run BRE|Re-?Run Analysis/i }).first();
   },};
 const PRESENCE_ONLY = new Set(['DELETE_GROUP', 'DELETE_CLOUD_ACCOUNT', 'ADD_NEW_APPLICATION', 'IMPORT_SERVICE_CATALOG']);
 

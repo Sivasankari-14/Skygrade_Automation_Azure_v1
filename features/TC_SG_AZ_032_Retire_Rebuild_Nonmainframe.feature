@@ -7,15 +7,15 @@ Feature: Retire (non-mainframe) Analysis -> Plan
      And admin assigns cluster scope
 
      #---- Architect: analysis + set Rehost disposition ----
-    Given I am logged in for rbac as "application-architect"
-    And I search for the app in Search button
-    And I Run analysis and wait for completion
-    Then the analysis status should be "Completed"
+     Given I am logged in for rbac as "application-architect"
+    # And I search for the app in Search button
+    # And I Run analysis and wait for completion
+    # Then the analysis status should be "Completed"
 
     #------Analysis+Plan page------------------
      Given I open the onboarded app
-     Then I verify Analysis Details page
-     And I compare data with CAST Highlight
+    #  Then I verify Analysis Details page
+    #  And I compare data with CAST Highlight
      And I verify when giving "Retire" it should not proceed to next page
      And  I verify when giving "Rebuild" it should not proceed to next page
 

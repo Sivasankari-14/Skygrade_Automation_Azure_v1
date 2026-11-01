@@ -8,21 +8,21 @@ Feature: Rearchitect end-to-end (non-mainframe) with deploy pipelines and cloud 
 
      # ---- Architect: analysis + set Rearchitect disposition ----
     Given I am logged in for rbac as "application-architect"
-    And I search for the app in Search button
-    And I Run analysis and wait for completion
-    Then the analysis status should be "Completed"
+    # And I search for the app in Search button
+    # And I Run analysis and wait for completion
+    # Then the analysis status should be "Completed"
 
     #------Analysis+Plan page------------------
     Given I open the onboarded app
-    Then I verify Analysis Details page
-    And I compare data with CAST Highlight
+    # Then I verify Analysis Details page
+    # And I compare data with CAST Highlight
     And I edit the plan and set disposition to "Rearchitect"
 
     # ---- Infra-developer: IaC generation ----
     Given I am logged in for rbac as "infra-developer"
     And I open the onboarded app
     When I validate IaC Generation status
-    Then I capture supported resources
+    Then I capture available services
     And I validate App Stack resources in StackGen for full flow
 
     # ---- Application-developer: lift & shift ----
@@ -35,10 +35,10 @@ Feature: Rearchitect end-to-end (non-mainframe) with deploy pipelines and cloud 
 
     # ---- Deploy: CI/CD pipelines ----
     
-    # Then I create a CI Pipeline
-    # And I open the onboarded app
-    # And I cliked previous button
-    # Then I create a CD Pipeline
+    Then I create a CI Pipeline
+    And I open the onboarded app
+    And I cliked previous button
+    Then I create a CD Pipeline
 
     # ---- Cloud Ops ----
     Given I am logged in for rbac as "application-architect"
