@@ -6,7 +6,7 @@ module.exports = {
       'features/support/**/*.js',
     ],
     format: [
-      'progress-bar',
+      'progress',
       'json:reports/cucumber-report.json',
       'html:reports/cucumber-report.html',
     ],
